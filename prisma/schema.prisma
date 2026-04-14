@@ -1,0 +1,169 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  password      String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  profile       Profile?
+  progress      Progress[]
+  sessions      SessionHistory[]
+  reviewQueue   ReviewQueue[]
+  badges        UserBadge[]
+  streak        DailyStreak?
+}
+
+model Profile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  avatar      String   @default("🤖")
+  level       Int      @default(1)
+  xp          Int      @default(0)
+  hearts      Int      @default(5)
+  maxHearts   Int      @default(5)
+  userLevel   String   @default("debutant") // debutant | intermediaire | avance
+  goal        String   @default("culture") // culture | pro | expert
+  totalLessonsCompleted Int @default(0)
+  updatedAt   DateTime @updatedAt
+}
+
+model Chapter {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  description String
+  emoji       String
+  order       Int
+  color       String   @default("#00D4FF")
+  isLocked    Boolean  @default(false)
+  xpRequired  Int      @default(0)
+  lessons     Lesson[]
+  createdAt   DateTime @default(now())
+}
+
+model Lesson {
+  id          String     @id @default(cuid())
+  chapterId   String
+  chapter     Chapter    @relation(fields: [chapterId], references: [id])
+  slug        String     @unique
+  title       String
+  description String
+  order       Int
+  xpReward    Int        @default(20)
+  duration    Int        @default(5) // minutes estimées
+  content    String?
+  exercises   Exercise[]
+  progress    Progress[]
+  reviewQueue ReviewQueue[]
+  createdAt   DateTime   @default(now())
+}
+
+model Exercise {
+  id            String         @id @default(cuid())
+  lessonId      String
+  lesson        Lesson         @relation(fields: [lessonId], references: [id])
+  type          String         // qcm | vrai_faux | relier | completer | ordre | cas_pratique
+  question      String
+  explanation   String
+  order         Int
+  xpValue       Int            @default(5)
+  options       AnswerOption[]
+  createdAt     DateTime       @default(now())
+}
+
+model AnswerOption {
+  id          String   @id @default(cuid())
+  exerciseId  String
+  exercise    Exercise @relation(fields: [exerciseId], references: [id])
+  text        String
+  isCorrect   Boolean  @default(false)
+  order       Int      @default(0)
+}
+
+model Progress {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId      String
+  lesson        Lesson   @relation(fields: [lessonId], references: [id])
+  completed     Boolean  @default(false)
+  score         Int      @default(0)
+  attempts      Int      @default(0)
+  bestScore     Int      @default(0)
+  xpEarned      Int      @default(0)
+  completedAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, lessonId])
+}
+
+model Badge {
+  id          String      @id @default(cuid())
+  slug        String      @unique
+  name        String
+  description String
+  emoji       String
+  condition   String      // JSON describing unlock condition
+  users       UserBadge[]
+}
+
+model UserBadge {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badgeId   String
+  badge     Badge    @relation(fields: [badgeId], references: [id])
+  earnedAt  DateTime @default(now())
+
+  @@unique([userId, badgeId])
+}
+
+model ReviewQueue {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId    String
+  lesson      Lesson   @relation(fields: [lessonId], references: [id])
+  dueAt       DateTime
+  interval    Int      @default(1) // jours
+  easeFactor  Float    @default(2.5)
+  repetitions Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, lessonId])
+}
+
+model DailyStreak {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentStreak Int      @default(0)
+  longestStreak Int      @default(0)
+  lastActivityAt DateTime?
+  updatedAt     DateTime @updatedAt
+}
+
+model SessionHistory {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId    String
+  xpEarned    Int      @default(0)
+  score       Int      @default(0)
+  duration    Int      @default(0) // secondes
+  completedAt DateTime @default(now())
+}
