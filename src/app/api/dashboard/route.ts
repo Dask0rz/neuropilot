@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic"
 // src/app/api/dashboard/route.ts
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
