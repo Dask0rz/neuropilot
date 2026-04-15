@@ -258,19 +258,19 @@ function LessonResultScreen({ lesson, exercises, hearts, xpEarned }: any) {
         <p className="text-white/60 mb-8 font-medium">{lesson?.title}</p>
 
         <div className="grid grid-cols-3 gap-3 mb-6">
-          <div className="glass-card p-4 border border-white/10">
-            <div className="font-display text-3xl font-black mb-1" style={{ color }}>{score}%</div>
-            <div className="text-xs text-white/40">Score</div>
+          <div className="glass-card p-4 border border-white/10 overflow-hidden">
+            <div className="font-display text-2xl font-black mb-1 leading-none" style={{ color }}>{score}%</div>
+            <div className="text-xs text-white/40 mt-1">Score</div>
             <div className="text-xs text-white/30 mt-1">{correct}/{exercises.length}</div>
           </div>
-          <div className="glass-card p-4 border border-lime-neon/20 bg-lime-neon/5">
-            <div className="font-display text-3xl font-black text-lime-neon mb-1">+{xpEarned}</div>
-            <div className="text-xs text-white/40">XP gagnes</div>
+          <div className="glass-card p-4 border border-lime-neon/20 bg-lime-neon/5 overflow-hidden">
+            <div className="font-display text-2xl font-black text-lime-neon mb-1 leading-none">+{xpEarned}</div>
+            <div className="text-xs text-white/40 mt-1">XP gagnes</div>
             <div className="text-xs text-lime-neon/50 mt-1">Ajoutes</div>
           </div>
-          <div className="glass-card p-4 border border-white/10">
-            <div className="font-display text-3xl font-black text-red-400 mb-1">{hearts}</div>
-            <div className="text-xs text-white/40">Vies restantes</div>
+          <div className="glass-card p-4 border border-white/10 overflow-hidden">
+            <div className="font-display text-2xl font-black text-red-400 mb-1 leading-none">{hearts}</div>
+            <div className="text-xs text-white/40 mt-1">Vies restantes</div>
           </div>
         </div>
 
