@@ -46,7 +46,7 @@ export default function RegisterPage() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 mb-6">
             <span className="text-3xl">🧠</span>
-            <span className="font-display font-bold text-2xl text-gradient">NeuroPilot</span>
+            <span className="font-display font-bold text-2xl text-gradient">Yukino</span>
           </Link>
           <h1 className="font-display text-3xl font-black mb-2">Crée ton compte</h1>
           <p className="text-white/50">Et commence à maîtriser l'IA aujourd'hui</p>

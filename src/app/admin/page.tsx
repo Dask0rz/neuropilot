@@ -20,7 +20,7 @@ export default function AdminPage() {
   return (
     <div>
       <h1 className="font-display text-2xl font-black mb-2">Vue d'ensemble</h1>
-      <p className="text-white/40 text-sm mb-8">Bienvenue dans le panel d'administration NeuroPilot.</p>
+      <p className="text-white/40 text-sm mb-8">Bienvenue dans le panel d'administration Yukino.</p>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
         {cards.map(card => (

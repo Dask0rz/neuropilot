@@ -23,7 +23,7 @@ const jetbrains = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'NeuroPilot — Pilote ton futur avec l\'IA',
+  title: 'Yukino — Pilote ton futur avec l\'IA',
   description: 'Apprends l\'intelligence artificielle de façon gamifiée, progressive et addictive. De zéro à expert en quelques semaines.',
   keywords: 'intelligence artificielle, machine learning, apprentissage, formation, IA',
 }

@@ -21,7 +21,7 @@ export default async function LandingPage() {
       <nav className="relative z-10 flex items-center justify-between px-6 py-5 max-w-6xl mx-auto">
         <div className="flex items-center gap-2">
           <span className="text-2xl">🧠</span>
-          <span className="font-display font-bold text-xl text-gradient">NeuroPilot</span>
+          <span className="font-display font-bold text-xl text-gradient">Yukino</span>
         </div>
         <div className="flex items-center gap-3">
           <Link href="/login" className="text-white/70 hover:text-white transition-colors text-sm font-medium px-4 py-2">
@@ -47,7 +47,7 @@ export default async function LandingPage() {
 
         <p className="text-xl text-white/60 mb-10 max-w-2xl mx-auto leading-relaxed font-body">
           L'intelligence artificielle n'est plus réservée aux experts.
-          NeuroPilot te guide pas à pas, 10 minutes par jour,
+          Yukino te guide pas à pas, 10 minutes par jour,
           avec des leçons courtes, des quiz addictifs et une vraie progression.
         </p>
 
@@ -63,7 +63,7 @@ export default async function LandingPage() {
         {/* Demo login hint */}
         <div className="inline-flex items-center gap-2 text-sm text-white/40">
           <span>🎮</span>
-          <span>Compte démo : <code className="font-mono text-cyan-neon/70">demo@neuropilot.app</code> / <code className="font-mono text-cyan-neon/70">demo1234</code></span>
+          <span>Compte démo : <code className="font-mono text-cyan-neon/70">demo@yukino.app</code> / <code className="font-mono text-cyan-neon/70">demo1234</code></span>
         </div>
       </section>
 
@@ -156,7 +156,7 @@ export default async function LandingPage() {
 
       {/* Footer */}
       <footer className="relative z-10 text-center py-8 text-white/30 text-sm border-t border-white/5">
-        <p>NeuroPilot — <span className="text-gradient">Pilote ton futur avec l'IA</span></p>
+        <p>Yukino — <span className="text-gradient">Pilote ton futur avec l'IA</span></p>
       </footer>
     </main>
   )

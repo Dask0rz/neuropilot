@@ -49,7 +49,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="p-6 border-b border-white/5">
           <Link href="/dashboard" className="flex items-center gap-2">
             <span className="text-2xl">🧠</span>
-            <span className="font-display font-bold text-xl text-gradient">NeuroPilot</span>
+            <span className="font-display font-bold text-xl text-gradient">Yukino</span>
           </Link>
         </div>
         <nav className="flex-1 p-4 space-y-1">

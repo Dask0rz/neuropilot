@@ -30,7 +30,7 @@ export default function LoginPage() {
   }
 
   function fillDemo() {
-    setEmail('demo@neuropilot.app')
+    setEmail('demo@yukino.app')
     setPassword('demo1234')
   }
 
@@ -45,7 +45,7 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 mb-6">
             <span className="text-3xl">🧠</span>
-            <span className="font-display font-bold text-2xl text-gradient">NeuroPilot</span>
+            <span className="font-display font-bold text-2xl text-gradient">Yukino</span>
           </Link>
           <h1 className="font-display text-3xl font-black mb-2">Bon retour !</h1>
           <p className="text-white/50">Continue ton parcours là où tu t'es arrêté</p>
