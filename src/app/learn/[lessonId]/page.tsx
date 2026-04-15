@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { useGameStore } from '@/store/gameStore'
-import { Exercise } from '@/types'
+import { Exercise, AnswerOption } from '@/types'
 import { calculateScore, getScoreLabel } from '@/lib/game'
 import { playCorrect, playWrong, playLevelUpSound } from '@/lib/sound'
 import Link from 'next/link'
@@ -152,11 +152,53 @@ function renderContent(content: string): string {
     .replace(/\n\n/g, '</p><p class="text-white/70 leading-relaxed my-4">')
 }
 
+// ─── Routeur d'exercice ───────────────────────────────────────────────────────
+
 function ExerciseCard({ exercise, showExplanation, lastAnswerCorrect, onAnswer }: {
   exercise: Exercise
   showExplanation: boolean
   lastAnswerCorrect: boolean | null
   onAnswer: (id: string, optId: string, correct: boolean, xp: number) => void
+}) {
+  const typeLabel: Record<string, string> = {
+    qcm: '📝 QCM',
+    vrai_faux: '⚡ Vrai ou Faux',
+    relier: '🔗 Association',
+    completer: '✏️ Compléter',
+    ordre: '📋 Remettre en ordre',
+    cas_pratique: '💼 Cas pratique',
+  }
+
+  const header = (
+    <div className="flex items-center gap-2 mb-4">
+      <span className="text-xs font-mono text-white/30 bg-white/5 px-3 py-1 rounded-full">
+        {typeLabel[exercise.type] ?? 'Exercice'}
+      </span>
+      <span className="xp-badge">+{exercise.xpValue} XP</span>
+    </div>
+  )
+
+  if (exercise.type === 'relier') {
+    return <RelierExercise exercise={exercise} showExplanation={showExplanation} onAnswer={onAnswer} header={header} />
+  }
+  if (exercise.type === 'ordre') {
+    return <OrdreExercise exercise={exercise} showExplanation={showExplanation} onAnswer={onAnswer} header={header} />
+  }
+  if (exercise.type === 'completer') {
+    return <CompleterExercise exercise={exercise} showExplanation={showExplanation} onAnswer={onAnswer} header={header} />
+  }
+
+  return <QcmExercise exercise={exercise} showExplanation={showExplanation} lastAnswerCorrect={lastAnswerCorrect} onAnswer={onAnswer} header={header} />
+}
+
+// ─── QCM / Vrai-Faux / Cas pratique ──────────────────────────────────────────
+
+function QcmExercise({ exercise, showExplanation, lastAnswerCorrect, onAnswer, header }: {
+  exercise: Exercise
+  showExplanation: boolean
+  lastAnswerCorrect: boolean | null
+  onAnswer: (id: string, optId: string, correct: boolean, xp: number) => void
+  header: React.ReactNode
 }) {
   const [selected, setSelected] = useState<string | null>(null)
   useEffect(() => { setSelected(null) }, [exercise.id])
@@ -169,17 +211,9 @@ function ExerciseCard({ exercise, showExplanation, lastAnswerCorrect, onAnswer }
     onAnswer(exercise.id, optionId, isCorrect, exercise.xpValue)
   }
 
-  const typeLabel: Record<string, string> = {
-    qcm: '📝 QCM', vrai_faux: '⚡ Vrai ou Faux', relier: '🔗 Association',
-    completer: '✏️ Completer', ordre: '📋 Remettre en ordre', cas_pratique: '💼 Cas pratique',
-  }
-
   return (
     <div className="w-full animate-slide-up">
-      <div className="flex items-center gap-2 mb-4">
-        <span className="text-xs font-mono text-white/30 bg-white/5 px-3 py-1 rounded-full">{typeLabel[exercise.type] ?? 'Exercice'}</span>
-        <span className="xp-badge">+{exercise.xpValue} XP</span>
-      </div>
+      {header}
       <h2 className="font-display text-xl md:text-2xl font-bold mb-6 leading-tight">{exercise.question}</h2>
       <div className="space-y-3">
         {exercise.options.map(option => {
@@ -201,7 +235,7 @@ function ExerciseCard({ exercise, showExplanation, lastAnswerCorrect, onAnswer }
                   isSelected ? 'border-cyan-neon bg-cyan-neon/20' : 'border-white/20'
                 }`}>
                   {showExplanation && isCorrectOption ? '✓' :
-                   showExplanation && isSelected && !isCorrectOption ? 'X' :
+                   showExplanation && isSelected && !isCorrectOption ? '✗' :
                    String.fromCharCode(65 + exercise.options.indexOf(option))}
                 </div>
                 <span className="leading-snug">{option.text}</span>
@@ -213,6 +247,295 @@ function ExerciseCard({ exercise, showExplanation, lastAnswerCorrect, onAnswer }
     </div>
   )
 }
+
+// ─── Exercice RELIER ──────────────────────────────────────────────────────────
+// Format attendu dans la DB : option.text = "Terme gauche || Terme droite"
+
+function RelierExercise({ exercise, showExplanation, onAnswer, header }: {
+  exercise: Exercise
+  showExplanation: boolean
+  onAnswer: (id: string, optId: string, correct: boolean, xp: number) => void
+  header: React.ReactNode
+}) {
+  const pairs = exercise.options
+    .filter(o => o.isCorrect && o.text.includes(' || '))
+    .map(o => {
+      const [left, right] = o.text.split(' || ')
+      return { id: o.id, left: left.trim(), right: right.trim() }
+    })
+
+  const [rightItems] = useState(() => [...pairs].sort(() => Math.random() - 0.5).map(p => p.right))
+  const [selections, setSelections] = useState<Record<string, string>>({})
+  const [activeLeft, setActiveLeft] = useState<string | null>(null)
+  const [submitted, setSubmitted] = useState(false)
+
+  useEffect(() => {
+    setSelections({})
+    setActiveLeft(null)
+    setSubmitted(false)
+  }, [exercise.id])
+
+  function handleLeftClick(leftText: string) {
+    if (submitted) return
+    setActiveLeft(prev => prev === leftText ? null : leftText)
+  }
+
+  function handleRightClick(rightText: string) {
+    if (submitted || !activeLeft) return
+    setSelections(prev => ({ ...prev, [activeLeft]: rightText }))
+    setActiveLeft(null)
+  }
+
+  function handleSubmit() {
+    if (submitted) return
+    const allCorrect = pairs.every(p => selections[p.left] === p.right)
+    setSubmitted(true)
+    if (allCorrect) playCorrect()
+    else playWrong()
+    onAnswer(exercise.id, exercise.options.find(o => o.isCorrect)?.id ?? '', allCorrect, exercise.xpValue)
+  }
+
+  const allPaired = pairs.every(p => selections[p.left])
+
+  return (
+    <div className="w-full animate-slide-up">
+      {header}
+      <h2 className="font-display text-xl font-bold mb-2 leading-tight">{exercise.question}</h2>
+      <p className="text-white/40 text-sm mb-6">Clique sur un élément à gauche puis son association à droite</p>
+
+      <div className="grid grid-cols-2 gap-3 mb-6">
+        <div className="space-y-2">
+          {pairs.map(p => (
+            <button key={p.left} onClick={() => handleLeftClick(p.left)} disabled={submitted}
+              className={`w-full text-left px-4 py-3 rounded-xl border text-sm font-medium transition-all ${
+                submitted
+                  ? selections[p.left] === p.right
+                    ? 'border-lime-neon/50 bg-lime-neon/10 text-lime-neon'
+                    : 'border-red-400/50 bg-red-400/10 text-red-400'
+                  : activeLeft === p.left
+                    ? 'border-cyan-neon bg-cyan-neon/10 text-cyan-neon scale-105'
+                    : selections[p.left]
+                      ? 'border-white/30 bg-white/5 text-white/60'
+                      : 'border-white/20 bg-white/5 text-white hover:border-white/40'
+              }`}>
+              {p.left}
+              {selections[p.left] && !submitted && (
+                <span className="block text-xs text-cyan-neon/60 mt-1">→ {selections[p.left]}</span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        <div className="space-y-2">
+          {rightItems.map(right => {
+            const isUsed = Object.values(selections).includes(right)
+            const matchedLeft = Object.entries(selections).find(([, v]) => v === right)?.[0]
+            const isCorrectPair = submitted && matchedLeft !== undefined && pairs.find(p => p.left === matchedLeft)?.right === right
+
+            return (
+              <button key={right} onClick={() => handleRightClick(right)}
+                disabled={submitted || (isUsed && activeLeft === null)}
+                className={`w-full text-left px-4 py-3 rounded-xl border text-sm font-medium transition-all ${
+                  submitted
+                    ? isCorrectPair
+                      ? 'border-lime-neon/50 bg-lime-neon/10 text-lime-neon'
+                      : isUsed
+                        ? 'border-red-400/50 bg-red-400/10 text-red-400'
+                        : 'border-white/10 text-white/30'
+                    : isUsed
+                      ? 'border-white/10 bg-white/5 text-white/30'
+                      : activeLeft
+                        ? 'border-cyan-neon/50 bg-cyan-neon/5 text-white hover:border-cyan-neon hover:bg-cyan-neon/10'
+                        : 'border-white/20 bg-white/5 text-white hover:border-white/40'
+                }`}>
+                {right}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {!submitted && (
+        <button onClick={handleSubmit} disabled={!allPaired}
+          className={`w-full py-3 font-display font-bold rounded-xl transition-all active:scale-95 ${
+            allPaired ? 'bg-cyan-neon text-navy-900 hover:bg-white' : 'bg-white/10 text-white/30 cursor-not-allowed'
+          }`}>
+          Vérifier
+        </button>
+      )}
+    </div>
+  )
+}
+
+// ─── Exercice ORDRE ───────────────────────────────────────────────────────────
+
+function OrdreExercise({ exercise, showExplanation, onAnswer, header }: {
+  exercise: Exercise
+  showExplanation: boolean
+  onAnswer: (id: string, optId: string, correct: boolean, xp: number) => void
+  header: React.ReactNode
+}) {
+  const correctOrder = [...exercise.options]
+    .filter(o => o.isCorrect)
+    .sort((a, b) => a.order - b.order)
+
+  const [items, setItems] = useState(() => [...exercise.options].sort(() => Math.random() - 0.5))
+  const [submitted, setSubmitted] = useState(false)
+
+  useEffect(() => {
+    setItems([...exercise.options].sort(() => Math.random() - 0.5))
+    setSubmitted(false)
+  }, [exercise.id])
+
+  function moveItem(from: number, to: number) {
+    if (submitted || to < 0 || to >= items.length) return
+    const newItems = [...items]
+    const [moved] = newItems.splice(from, 1)
+    newItems.splice(to, 0, moved)
+    setItems(newItems)
+  }
+
+  function handleSubmit() {
+    if (submitted) return
+    const isCorrect = items.every((item, i) => item.id === correctOrder[i]?.id)
+    setSubmitted(true)
+    if (isCorrect) playCorrect()
+    else playWrong()
+    onAnswer(exercise.id, exercise.options.find(o => o.isCorrect)?.id ?? '', isCorrect, exercise.xpValue)
+  }
+
+  return (
+    <div className="w-full animate-slide-up">
+      {header}
+      <h2 className="font-display text-xl font-bold mb-2 leading-tight">{exercise.question}</h2>
+      <p className="text-white/40 text-sm mb-6">Utilise ↑ ↓ pour remettre dans le bon ordre</p>
+
+      <div className="space-y-2 mb-6">
+        {items.map((item, i) => {
+          const isCorrectPos = submitted && item.id === correctOrder[i]?.id
+          const isWrongPos = submitted && item.id !== correctOrder[i]?.id
+
+          return (
+            <div key={item.id}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-medium transition-all ${
+                isCorrectPos ? 'border-lime-neon/50 bg-lime-neon/10 text-lime-neon' :
+                isWrongPos ? 'border-red-400/50 bg-red-400/10 text-red-400' :
+                'border-white/20 bg-white/5 text-white'
+              }`}>
+              <span className="text-white/30 font-mono text-xs w-5">{i + 1}.</span>
+              <span className="flex-1">{item.text}</span>
+              {!submitted ? (
+                <div className="flex gap-1">
+                  <button onClick={() => moveItem(i, i - 1)} disabled={i === 0}
+                    className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-20 flex items-center justify-center text-white/60 transition-all">↑</button>
+                  <button onClick={() => moveItem(i, i + 1)} disabled={i === items.length - 1}
+                    className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-20 flex items-center justify-center text-white/60 transition-all">↓</button>
+                </div>
+              ) : (
+                <span>{isCorrectPos ? '✓' : '✗'}</span>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {!submitted && (
+        <button onClick={handleSubmit}
+          className="w-full py-3 font-display font-bold rounded-xl bg-cyan-neon text-navy-900 hover:bg-white transition-all active:scale-95">
+          Vérifier l'ordre
+        </button>
+      )}
+
+      {submitted && (
+        <div className="mt-4 p-4 rounded-xl bg-white/5 border border-white/10">
+          <p className="text-xs text-white/40 mb-2">Ordre correct :</p>
+          <ol className="space-y-1">
+            {correctOrder.map((item, i) => (
+              <li key={item.id} className="text-sm text-lime-neon flex gap-2">
+                <span className="text-white/30">{i + 1}.</span> {item.text}
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Exercice COMPLETER ───────────────────────────────────────────────────────
+// La question contient "___ " à la place du mot manquant
+
+function CompleterExercise({ exercise, showExplanation, onAnswer, header }: {
+  exercise: Exercise
+  showExplanation: boolean
+  onAnswer: (id: string, optId: string, correct: boolean, xp: number) => void
+  header: React.ReactNode
+}) {
+  const [selected, setSelected] = useState<string | null>(null)
+  const [submitted, setSubmitted] = useState(false)
+  const [shuffled] = useState(() => [...exercise.options].sort(() => Math.random() - 0.5))
+
+  useEffect(() => {
+    setSelected(null)
+    setSubmitted(false)
+  }, [exercise.id])
+
+  const parts = exercise.question.split('___')
+
+  function handleSelect(option: AnswerOption) {
+    if (submitted) return
+    setSelected(option.id)
+    setSubmitted(true)
+    if (option.isCorrect) playCorrect()
+    else playWrong()
+    onAnswer(exercise.id, option.id, option.isCorrect, exercise.xpValue)
+  }
+
+  const selectedOption = shuffled.find(o => o.id === selected)
+
+  return (
+    <div className="w-full animate-slide-up">
+      {header}
+
+      <div className="mb-8 p-5 rounded-2xl bg-white/5 border border-white/10">
+        <p className="text-lg md:text-xl font-medium leading-relaxed text-white">
+          {parts[0]}
+          <span className={`inline-block mx-1 px-3 py-1 rounded-lg border-2 border-dashed font-bold transition-all ${
+            !selected
+              ? 'border-white/30 text-white/30 min-w-[80px] text-center'
+              : selectedOption?.isCorrect
+                ? 'border-lime-neon bg-lime-neon/20 text-lime-neon'
+                : 'border-red-400 bg-red-400/20 text-red-400'
+          }`}>
+            {selected ? selectedOption?.text : '   ?   '}
+          </span>
+          {parts[1] ?? ''}
+        </p>
+      </div>
+
+      <div className="flex flex-wrap gap-3 justify-center">
+        {shuffled.map(option => (
+          <button key={option.id} onClick={() => handleSelect(option)} disabled={submitted}
+            className={`px-5 py-2.5 rounded-xl border font-medium text-sm transition-all active:scale-95 ${
+              submitted && option.id === selected
+                ? option.isCorrect
+                  ? 'border-lime-neon bg-lime-neon/20 text-lime-neon'
+                  : 'border-red-400 bg-red-400/20 text-red-400'
+                : submitted && option.isCorrect
+                  ? 'border-lime-neon/50 bg-lime-neon/10 text-lime-neon'
+                  : submitted
+                    ? 'border-white/10 text-white/30'
+                    : 'border-white/30 bg-white/5 text-white hover:border-cyan-neon hover:bg-cyan-neon/10 hover:text-cyan-neon'
+            }`}>
+            {option.text}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ─── Écran résultat ───────────────────────────────────────────────────────────
 
 function LessonResultScreen({ lesson, exercises, hearts, xpEarned }: any) {
   const correct = useGameStore.getState().answers.filter((a: any) => a.isCorrect).length
@@ -239,15 +562,8 @@ function LessonResultScreen({ lesson, exercises, hearts, xpEarned }: any) {
   return (
     <div className="min-h-screen bg-navy-900 bg-grid flex flex-col items-center justify-center p-6 overflow-hidden">
       {confetti.map(c => (
-        <div
-          key={c.id}
-          className="fixed top-0 w-2 h-3 rounded-sm pointer-events-none z-50"
-          style={{
-            left: `${c.x}%`,
-            backgroundColor: c.color,
-            animation: `confetti-fall ${c.duration}s ease-in ${c.delay}s forwards`,
-          }}
-        />
+        <div key={c.id} className="fixed top-0 w-2 h-3 rounded-sm pointer-events-none z-50"
+          style={{ left: `${c.x}%`, backgroundColor: c.color, animation: `confetti-fall ${c.duration}s ease-in ${c.delay}s forwards` }} />
       ))}
 
       <div className="fixed inset-0 pointer-events-none">
@@ -284,13 +600,8 @@ function LessonResultScreen({ lesson, exercises, hearts, xpEarned }: any) {
             <span style={{ color }}>{score >= 80 ? 'Excellent' : score >= 60 ? 'Bien' : 'Continue'}</span>
           </div>
           <div className="progress-bar h-3">
-            <div
-              className="h-full rounded-full transition-all duration-1000 delay-500"
-              style={{
-                width: showContent ? `${score}%` : '0%',
-                background: `linear-gradient(90deg, ${color}, ${score === 100 ? '#A3FF47' : color})`,
-              }}
-            />
+            <div className="h-full rounded-full transition-all duration-1000 delay-500"
+              style={{ width: showContent ? `${score}%` : '0%', background: `linear-gradient(90deg, ${color}, ${score === 100 ? '#A3FF47' : color})` }} />
           </div>
         </div>
 
