@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import { useGameStore } from '@/store/gameStore'
 import { Exercise } from '@/types'
 import { calculateScore, getScoreLabel } from '@/lib/game'
+import { playCorrect, playWrong, playLevelUpSound } from '@/lib/sound'
 import Link from 'next/link'
 
 type LessonPhase = 'loading' | 'course' | 'quiz' | 'result'
@@ -163,6 +164,8 @@ function ExerciseCard({ exercise, showExplanation, lastAnswerCorrect, onAnswer }
   function handleSelect(optionId: string, isCorrect: boolean) {
     if (showExplanation) return
     setSelected(optionId)
+    if (isCorrect) playCorrect()
+    else playWrong()
     onAnswer(exercise.id, optionId, isCorrect, exercise.xpValue)
   }
 
@@ -220,6 +223,7 @@ function LessonResultScreen({ lesson, exercises, hearts, xpEarned }: any) {
 
   useEffect(() => {
     setTimeout(() => setShowContent(true), 100)
+    if (score === 100) playLevelUpSound()
     if (score >= 60) {
       const pieces = Array.from({ length: 60 }, (_, i) => ({
         id: i,
