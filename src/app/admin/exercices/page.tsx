@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 
-export default function AdminExercicesPage() {
+function AdminExercicesPageInner() {
   const searchParams = useSearchParams()
   const lessonId = searchParams.get('lessonId')
   const [exercises, setExercises] = useState<any[]>([])
@@ -78,4 +78,9 @@ export default function AdminExercicesPage() {
       )}
     </div>
   )
+}
+
+import { Suspense } from 'react'
+export default function AdminExercicesPage() {
+  return <Suspense fallback={<div className="text-white/40 text-center py-20">Chargement...</div>}><AdminExercicesPageInner /></Suspense>
 }
