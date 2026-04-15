@@ -73,7 +73,7 @@ export default function ChaptersPage() {
                   </div>
                   {!ch.isLocked && (
                     <div className="text-xs font-mono text-white/30">
-                      {ch.xpRequired > 0 ? `${ch.xpRequired} XP requis` : 'Débloqué'}
+                      {ch.isLocked ? `🔒 ${ch.xpRequired} XP pour débloquer` : ch.progress === 100 ? '' : '✓ Débloqué'}
                     </div>
                   )}
                 </div>
