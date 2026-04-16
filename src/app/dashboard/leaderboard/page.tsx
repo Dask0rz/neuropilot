@@ -1,59 +1,69 @@
-export const dynamic = "force-dynamic"
-import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+'use client'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 
-export async function GET() {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  // Semaine courante
-  const now = new Date()
-  const monday = new Date(now)
-  monday.setDate(now.getDate() - now.getDay() + 1)
-  monday.setHours(0, 0, 0, 0)
-
-  // Quiz de la semaine
-  const quiz = await prisma.weeklyQuiz.findFirst({
-    where: { weekStart: { gte: monday } }
-  })
-
-  if (!quiz) {
-    return NextResponse.json({ leaderboard: [], quizExists: false })
-  }
-
-  // Scores de la semaine triés
-  const scores = await prisma.weeklyScore.findMany({
-    where: { quizId: quiz.id },
-    include: {
-      user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          profile: { select: { avatar: true, level: true } }
-        }
-      }
-    },
-    orderBy: [
-      { score: 'desc' },
-      { completedAt: 'asc' } // égalité → premier arrivé
-    ]
-  })
-
-  const leaderboard = scores.map((s, i) => ({
-    rank: i + 1,
-    userId: s.user.id,
-    name: s.user.name || s.user.email,
-    avatar: s.user.profile?.avatar || '🧠',
-    level: s.user.profile?.level || 1,
-    score: s.score,
-    completedAt: s.completedAt,
-    isCurrentUser: s.user.id === session.user.id
-  }))
-
-  return NextResponse.json({ leaderboard, quizExists: true })
+interface LeaderboardEntry {
+  rank: number
+  userId: string
+  name: string
+  avatar: string
+  level: number
+  score: number
+  completedAt: string
+  isCurrentUser: boolean
 }
+
+export default function LeaderboardPage() {
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
+  const [quizExists, setQuizExists] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const router = useRouter()
+
+  useEffect(() => {
+    fetch('/api/leaderboard')
+      .then(r => r.json())
+      .then(data => {
+        setLeaderboard(data.leaderboard || [])
+        setQuizExists(data.quizExists)
+        setLoading(false)
+      })
+  }, [])
+
+  const getRankStyle = (rank: number) => {
+    if (rank === 1) return 'text-yellow-400'
+    if (rank === 2) return 'text-gray-300'
+    if (rank === 3) return 'text-orange-400'
+    return 'text-white/40'
+  }
+
+  const getRankEmoji = (rank: number) => {
+    if (rank === 1) return '👑'
+    if (rank === 2) return '🥈'
+    if (rank === 3) return '🥉'
+    return `#${rank}`
+  }
+
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="text-cyan-400 text-lg animate-pulse">Chargement du leaderboard...</div>
+    </div>
+  )
+
+  return (
+    <div className="min-h-screen p-6 max-w-2xl mx-auto">
+      <div className="text-center mb-8">
+        <div className="text-5xl mb-2">🕹️</div>
+        <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400">
+          LEADERBOARD
+        </h1>
+        <p className="text-white/40 text-sm mt-1">Quiz hebdo — semaine en cours</p>
+      </div>
+
+      {!quizExists ? (
+        <div className="text-center py-20">
+          <div className="text-5xl mb-4">⏳</div>
+          <p className="text-white/60 text-lg">Pas encore de quiz cette semaine</p>
+          <p className="text-white/30 text-sm mt-2">Reviens lundi !</p>
+        </div>
+      ) : leaderboard.length === 0 ? (
+        <div className="text-center p
