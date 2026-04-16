@@ -62,7 +62,10 @@ Génère ensuite 10 questions QCM en français basées sur ces actualités. Rép
 
   let data
   try {
-    data = JSON.parse(textContent.text.replace(/```json|```/g, '').trim())
+    const raw = textContent.text
+const match = raw.match(/\{[\s\S]*\}/)
+if (!match) throw new Error('No JSON found')
+data = JSON.parse(match[0])
   } catch {
     return NextResponse.json({ error: 'Failed to parse Claude response' }, { status: 500 })
   }
