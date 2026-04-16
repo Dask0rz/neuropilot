@@ -9,6 +9,8 @@ import { signOut } from 'next-auth/react'
 const NAV_ITEMS = [
   { href: '/dashboard', icon: '🏠', label: 'Accueil' },
   { href: '/dashboard/chapters', icon: '🗺️', label: 'Parcours' },
+  { href: '/dashboard/weekly-quiz', icon: '⚡', label: 'Quiz Hebdo' },
+  { href: '/dashboard/leaderboard', icon: '🏆', label: 'Leaderboard' },
   { href: '/dashboard/review', icon: '🔁', label: 'Réviser' },
   { href: '/dashboard/profile', icon: '👤', label: 'Profil' },
   { href: '/dashboard/stats', icon: '📊', label: 'Stats' },
