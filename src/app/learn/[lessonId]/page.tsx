@@ -7,6 +7,15 @@ import { Exercise, AnswerOption } from '@/types'
 import { calculateScore, getScoreLabel } from '@/lib/game'
 import { playCorrect, playWrong, playLevelUpSound } from '@/lib/sound'
 import Link from 'next/link'
+import {
+  DndContext, closestCenter, PointerSensor, TouchSensor,
+  useSensor, useSensors, DragEndEvent, DragStartEvent, DragOverlay,
+} from '@dnd-kit/core'
+import {
+  SortableContext, verticalListSortingStrategy,
+  useSortable, arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 type LessonPhase = 'loading' | 'course' | 'quiz' | 'result'
 
@@ -201,8 +210,11 @@ function QcmExercise({ exercise, showExplanation, lastAnswerCorrect, onAnswer, h
   header: React.ReactNode
 }) {
   const [selected, setSelected] = useState<string | null>(null)
-  const [shuffled] = useState(() => [...exercise.options].sort(() => Math.random() - 0.5))
-  useEffect(() => { setSelected(null) }, [exercise.id])
+const [shuffled, setShuffled] = useState<AnswerOption[]>([])
+useEffect(() => {
+  setSelected(null)
+  setShuffled([...exercise.options].sort(() => Math.random() - 0.5))
+}, [exercise.id])
 
   function handleSelect(optionId: string, isCorrect: boolean) {
     if (showExplanation) return
@@ -368,7 +380,7 @@ function RelierExercise({ exercise, showExplanation, onAnswer, header }: {
   )
 }
 
-// ─── Exercice ORDRE ───────────────────────────────────────────────────────────
+// ─── Exercice ORDRE (drag & drop) ────────────────────────────────────────────
 
 function OrdreExercise({ exercise, showExplanation, onAnswer, header }: {
   exercise: Exercise
@@ -380,20 +392,36 @@ function OrdreExercise({ exercise, showExplanation, onAnswer, header }: {
     .filter(o => o.isCorrect)
     .sort((a, b) => a.order - b.order)
 
-  const [items, setItems] = useState(() => [...exercise.options].sort(() => Math.random() - 0.5))
+  const [items, setItems] = useState<AnswerOption[]>(
+    () => [...exercise.options].sort(() => Math.random() - 0.5)
+  )
   const [submitted, setSubmitted] = useState(false)
+  const [activeId, setActiveId] = useState<string | null>(null)
 
   useEffect(() => {
     setItems([...exercise.options].sort(() => Math.random() - 0.5))
     setSubmitted(false)
+    setActiveId(null)
   }, [exercise.id])
 
-  function moveItem(from: number, to: number) {
-    if (submitted || to < 0 || to >= items.length) return
-    const newItems = [...items]
-    const [moved] = newItems.splice(from, 1)
-    newItems.splice(to, 0, moved)
-    setItems(newItems)
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor,   { activationConstraint: { delay: 100, tolerance: 5 } })
+  )
+
+  function handleDragStart(event: DragStartEvent) {
+    setActiveId(event.active.id as string)
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    setActiveId(null)
+    if (!over || active.id === over.id) return
+    setItems(prev => {
+      const oldIndex = prev.findIndex(i => i.id === active.id)
+      const newIndex = prev.findIndex(i => i.id === over.id)
+      return arrayMove(prev, oldIndex, newIndex)
+    })
   }
 
   function handleSubmit() {
@@ -405,44 +433,50 @@ function OrdreExercise({ exercise, showExplanation, onAnswer, header }: {
     onAnswer(exercise.id, exercise.options.find(o => o.isCorrect)?.id ?? '', isCorrect, exercise.xpValue)
   }
 
+  const activeItem = items.find(i => i.id === activeId)
+
   return (
     <div className="w-full animate-slide-up">
       {header}
       <h2 className="font-display text-xl font-bold mb-2 leading-tight">{exercise.question}</h2>
-      <p className="text-white/40 text-sm mb-6">Utilise ↑ ↓ pour remettre dans le bon ordre</p>
+      <p className="text-white/40 text-sm mb-6">Glisse les éléments pour les remettre dans le bon ordre</p>
 
-      <div className="space-y-2 mb-6">
-        {items.map((item, i) => {
-          const isCorrectPos = submitted && item.id === correctOrder[i]?.id
-          const isWrongPos = submitted && item.id !== correctOrder[i]?.id
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
+          <div className="space-y-2 mb-6">
+            {items.map((item, i) => (
+              <SortableItem
+                key={item.id}
+                item={item}
+                index={i}
+                submitted={submitted}
+                isCorrect={submitted && item.id === correctOrder[i]?.id}
+              />
+            ))}
+          </div>
+        </SortableContext>
 
-          return (
-            <div key={item.id}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-medium transition-all ${
-                isCorrectPos ? 'border-lime-neon/50 bg-lime-neon/10 text-lime-neon' :
-                isWrongPos ? 'border-red-400/50 bg-red-400/10 text-red-400' :
-                'border-white/20 bg-white/5 text-white'
-              }`}>
-              <span className="text-white/30 font-mono text-xs w-5">{i + 1}.</span>
-              <span className="flex-1">{item.text}</span>
-              {!submitted ? (
-                <div className="flex gap-1">
-                  <button onClick={() => moveItem(i, i - 1)} disabled={i === 0}
-                    className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-20 flex items-center justify-center text-white/60 transition-all">↑</button>
-                  <button onClick={() => moveItem(i, i + 1)} disabled={i === items.length - 1}
-                    className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-20 flex items-center justify-center text-white/60 transition-all">↓</button>
-                </div>
-              ) : (
-                <span>{isCorrectPos ? '✓' : '✗'}</span>
-              )}
+        {/* Ghost visible pendant le drag */}
+        <DragOverlay>
+          {activeItem ? (
+            <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-cyan-neon bg-navy-900 text-white text-sm font-medium shadow-xl shadow-cyan-neon/20 opacity-95">
+              <span className="text-cyan-neon">⠿</span>
+              <span className="flex-1">{activeItem.text}</span>
             </div>
-          )
-        })}
-      </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
 
       {!submitted && (
-        <button onClick={handleSubmit}
-          className="w-full py-3 font-display font-bold rounded-xl bg-cyan-neon text-navy-900 hover:bg-white transition-all active:scale-95">
+        <button
+          onClick={handleSubmit}
+          className="w-full py-3 font-display font-bold rounded-xl bg-cyan-neon text-navy-900 hover:bg-white transition-all active:scale-95"
+        >
           Vérifier l'ordre
         </button>
       )}
@@ -458,6 +492,63 @@ function OrdreExercise({ exercise, showExplanation, onAnswer, header }: {
             ))}
           </ol>
         </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Item sortable individuel ─────────────────────────────────────────────────
+
+function SortableItem({ item, index, submitted, isCorrect }: {
+  item: AnswerOption
+  index: number
+  submitted: boolean
+  isCorrect: boolean
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.id, disabled: submitted })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.35 : 1, // la vraie carte s'efface, le ghost prend le relais
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-medium transition-colors ${
+        submitted
+          ? isCorrect
+            ? 'border-lime-neon/50 bg-lime-neon/10 text-lime-neon'
+            : 'border-red-400/50 bg-red-400/10 text-red-400'
+          : isDragging
+            ? 'border-cyan-neon/30 bg-white/3'
+            : 'border-white/20 bg-white/5 text-white'
+      }`}
+    >
+      {/* Handle drag — icône seule, pas toute la carte */}
+      {!submitted && (
+        <span
+          {...attributes}
+          {...listeners}
+          className="text-white/20 hover:text-cyan-neon cursor-grab active:cursor-grabbing transition-colors touch-none select-none text-lg leading-none"
+          aria-label="Déplacer"
+        >
+          ⠿
+        </span>
+      )}
+      <span className="text-white/30 font-mono text-xs w-5">{index + 1}.</span>
+      <span className="flex-1">{item.text}</span>
+      {submitted && (
+        <span>{isCorrect ? '✓' : '✗'}</span>
       )}
     </div>
   )
