@@ -97,36 +97,41 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </aside>
 
-      {/* Mobile bottom nav */}
+      {/* Mobile bottom nav — icônes uniquement, sans labels */}
       <nav className="fixed bottom-0 left-0 right-0 glass border-t border-white/5 z-20 lg:hidden">
-        <div className="flex items-center justify-around px-4 py-3">
+        <div className="flex items-center justify-around px-2 py-3 pb-safe">
           {NAV_ITEMS.map(item => (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center gap-1 transition-all duration-200 ${
-                pathname === item.href ? 'text-cyan-neon' : 'text-white/40'
+              aria-label={item.label}
+              className={`flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-200 ${
+                pathname === item.href
+                  ? 'text-cyan-neon bg-cyan-neon/10'
+                  : 'text-white/40'
               }`}
             >
               <span className="text-2xl">{item.icon}</span>
-              <span className="text-xs">{item.label}</span>
             </Link>
           ))}
           {isAdmin && (
             <Link
               href="/admin"
-              className={`flex flex-col items-center gap-1 transition-all duration-200 ${
-                pathname.startsWith('/admin') ? 'text-orange-400' : 'text-orange-400/40'
+              aria-label="Admin"
+              className={`flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-200 ${
+                pathname.startsWith('/admin')
+                  ? 'text-orange-400 bg-orange-400/10'
+                  : 'text-orange-400/40'
               }`}
             >
               <span className="text-2xl">⚙️</span>
-              <span className="text-xs">Admin</span>
             </Link>
           )}
         </div>
       </nav>
 
-      <main className="lg:ml-64 pb-24 lg:pb-0 min-h-screen">
+      {/* pt-safe-top compense la status bar iPhone en mode PWA */}
+      <main className="lg:ml-64 pb-24 lg:pb-0 min-h-screen pt-safe-top">
         {children}
       </main>
     </div>

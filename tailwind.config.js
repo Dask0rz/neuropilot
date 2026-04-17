@@ -31,6 +31,13 @@ module.exports = {
         body: ['var(--font-dm-sans)', 'sans-serif'],
         mono: ['var(--font-jetbrains)', 'monospace'],
       },
+      // Safe area insets pour iPhone (encoche, Dynamic Island)
+      padding: {
+        'safe-top': 'env(safe-area-inset-top)',
+        'safe-bottom': 'env(safe-area-inset-bottom)',
+        'safe-left': 'env(safe-area-inset-left)',
+        'safe-right': 'env(safe-area-inset-right)',
+      },
       animation: {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'float': 'float 6s ease-in-out infinite',
