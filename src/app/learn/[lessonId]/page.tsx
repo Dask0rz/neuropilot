@@ -201,6 +201,7 @@ function QcmExercise({ exercise, showExplanation, lastAnswerCorrect, onAnswer, h
   header: React.ReactNode
 }) {
   const [selected, setSelected] = useState<string | null>(null)
+  const [shuffled] = useState(() => [...exercise.options].sort(() => Math.random() - 0.5))
   useEffect(() => { setSelected(null) }, [exercise.id])
 
   function handleSelect(optionId: string, isCorrect: boolean) {
