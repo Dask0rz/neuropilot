@@ -1,0 +1,48 @@
+{
+  "name": "Yukino – Apprends l'IA",
+  "short_name": "Yukino",
+  "description": "Maîtrise l'intelligence artificielle avec des leçons interactives et des quiz hebdomadaires.",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f0f0f",
+  "theme_color": "#7c3aed",
+  "lang": "fr",
+  "scope": "/",
+  "categories": ["education"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/dashboard.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Dashboard Yukino"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Continuer à apprendre",
+      "url": "/dashboard",
+      "description": "Reprendre là où tu t'es arrêté"
+    },
+    {
+      "name": "Quiz de la semaine",
+      "url": "/weekly-quiz",
+      "description": "Tester tes connaissances"
+    }
+  ]
+}
