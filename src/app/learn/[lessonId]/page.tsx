@@ -216,7 +216,7 @@ function QcmExercise({ exercise, showExplanation, lastAnswerCorrect, onAnswer, h
       {header}
       <h2 className="font-display text-xl md:text-2xl font-bold mb-6 leading-tight">{exercise.question}</h2>
       <div className="space-y-3">
-        {exercise.options.map(option => {
+        {shuffled.map(option => {
           const isSelected = selected === option.id
           const isCorrectOption = option.isCorrect
           let className = 'exercise-option'
@@ -236,7 +236,7 @@ function QcmExercise({ exercise, showExplanation, lastAnswerCorrect, onAnswer, h
                 }`}>
                   {showExplanation && isCorrectOption ? '✓' :
                    showExplanation && isSelected && !isCorrectOption ? '✗' :
-                   String.fromCharCode(65 + exercise.options.indexOf(option))}
+                   String.fromCharCode(65 + shuffled.indexOf(option))}
                 </div>
                 <span className="leading-snug">{option.text}</span>
               </div>
