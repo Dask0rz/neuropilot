@@ -4,6 +4,7 @@ import { Syne, DM_Sans, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import { Providers } from '@/components/layout/Providers'
 import { RegisterSW } from '@/components/RegisterSW'
+import { InstallBanner } from '@/components/InstallBanner'
 
 const syne = Syne({
   subsets: ['latin'],
@@ -59,6 +60,7 @@ export default function RootLayout({
     <html lang="fr" className={`${syne.variable} ${dmSans.variable} ${jetbrains.variable}`}>
       <body className="bg-navy-900 text-white font-body antialiased">
         <RegisterSW />
+        <InstallBanner />
         <Providers>{children}</Providers>
       </body>
     </html>
