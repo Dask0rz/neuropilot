@@ -2,7 +2,6 @@ const CACHE_NAME = 'yukino-v1';
 
 // Assets statiques à mettre en cache immédiatement
 const STATIC_ASSETS = [
-  '/offline.html',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
 ];
