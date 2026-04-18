@@ -1,10 +1,7 @@
 const CACHE_NAME = 'yukino-v2';
 
 // Assets statiques à mettre en cache immédiatement
-const STATIC_ASSETS = [
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
-];
+const STATIC_ASSETS = [];
 
 // Routes qui ne doivent JAMAIS être servies depuis le cache
 const NEVER_CACHE = [
