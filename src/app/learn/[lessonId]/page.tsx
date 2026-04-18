@@ -517,31 +517,28 @@ function SortableItem({ item, index, submitted, isCorrect }: {
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.35 : 1, // la vraie carte s'efface, le ghost prend le relais
+    opacity: isDragging ? 0.35 : 1,
   }
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-medium transition-colors ${
+      {...attributes}
+      {...listeners}
+      className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-medium transition-colors touch-none select-none ${
         submitted
           ? isCorrect
-            ? 'border-lime-neon/50 bg-lime-neon/10 text-lime-neon'
-            : 'border-red-400/50 bg-red-400/10 text-red-400'
+            ? 'border-lime-neon/50 bg-lime-neon/10 text-lime-neon cursor-default'
+            : 'border-red-400/50 bg-red-400/10 text-red-400 cursor-default'
           : isDragging
-            ? 'border-cyan-neon/30 bg-white/3'
-            : 'border-white/20 bg-white/5 text-white'
+            ? 'border-cyan-neon/30 bg-white/3 cursor-grabbing'
+            : 'border-white/20 bg-white/5 text-white cursor-grab'
       }`}
     >
-      {/* Handle drag — icône seule, pas toute la carte */}
+      {/* Icône purement décorative, plus de listeners ici */}
       {!submitted && (
-        <span
-          {...attributes}
-          {...listeners}
-          className="text-white/20 hover:text-cyan-neon cursor-grab active:cursor-grabbing transition-colors touch-none select-none text-lg leading-none"
-          aria-label="Déplacer"
-        >
+        <span className="text-white/20 text-lg leading-none" aria-hidden="true">
           ⠿
         </span>
       )}
