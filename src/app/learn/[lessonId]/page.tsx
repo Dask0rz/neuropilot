@@ -35,7 +35,13 @@ export default function LearnPage() {
       .then(r => r.json())
       .then(data => {
         setLesson(data)
-        initGame(data.exercises ?? [], 5)
+  const sorted = [...(data.exercises ?? [])].sort((a, b) => {
+  const complex = ['ordre', 'relier', 'completer']
+  const aComplex = complex.includes(a.type) ? 1 : 0
+  const bComplex = complex.includes(b.type) ? 1 : 0
+  return aComplex - bComplex
+})
+initGame(sorted, 5)
         setPhase(data.content ? 'course' : 'quiz')
       })
     return () => resetGame()
