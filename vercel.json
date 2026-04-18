@@ -3,6 +3,10 @@
     {
       "path": "/api/weekly-quizz/generate?secret=yukino_cron_2024",
       "schedule": "0 8 * * 1"
+    },
+    {
+      "path": "/api/cron/streak-reminder",
+      "schedule": "0 18 * * *"
     }
   ]
 }
