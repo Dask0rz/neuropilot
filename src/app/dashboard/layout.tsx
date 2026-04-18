@@ -22,8 +22,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname()
 
   useEffect(() => {
-    if (status === 'unauthenticated') router.push('/login')
-  }, [status, router])
+    if (status !== 'authenticated') return
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
+
+    navigator.serviceWorker.ready.then(async (reg) => {
+      const existing = await reg.pushManager.getSubscription()
+      if (existing) return
+
+      const permission = await Notification.requestPermission()
+      if (permission !== 'granted') return
+
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: 'BNvfzulfkQBMUEqHM4KXKTVqjKwrkB-IJi7UMqsMeYXD8PBXPXGbZBc1cHIy_ScYMVBMzEEjgWjGfFZaMkIcjg4',
+      })
+
+      await fetch('/api/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sub),
+      })
+    })
+  }, [status])
 
   if (status === 'loading') {
     return (

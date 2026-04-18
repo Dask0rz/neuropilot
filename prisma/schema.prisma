@@ -24,6 +24,7 @@ model User {
   reviewQueue  ReviewQueue[]
   badges       UserBadge[]
   streak       DailyStreak?
+  pushSubscriptions PushSubscription[]
 }
 
 model Profile {
@@ -199,4 +200,14 @@ model WeeklyScore {
   user        User       @relation(fields: [userId], references: [id])
   score       Int        @default(0)
   completedAt DateTime   @default(now())
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
 }
