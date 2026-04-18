@@ -24,7 +24,7 @@ export default function ChaptersPage() {
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
-      <h1 className="font-display text-3xl font-black mb-2 pt-2">Parcours d'apprentissage</h1>
+      <h1 className="font-display text-3xl font-black mb-2 pt-2 leading-tight">Parcours d'apprentissage</h1>
       <p className="text-white/50 mb-8">8 chapitres pour maîtriser l'IA de A à Z</p>
 
       {/* Visual path */}
