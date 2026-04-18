@@ -101,7 +101,7 @@ export default function LearnPage() {
 
   return (
     <div className="min-h-screen bg-navy-900 bg-grid flex flex-col">
-      <div className="flex items-center gap-4 px-6 py-4 glass border-b border-white/5">
+      <div className="flex items-center gap-4 px-6 py-4 glass border-b border-white/5 pt-[max(1rem,env(safe-area-inset-top))]">
         <Link href={`/dashboard/chapters/${lesson?.chapter?.id}`} onClick={resetGame} className="text-white/40 hover:text-white transition-colors">X</Link>
         <div className="flex-1">
           <div className="progress-bar">
