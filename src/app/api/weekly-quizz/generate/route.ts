@@ -5,7 +5,7 @@ import Anthropic from '@anthropic-ai/sdk'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-export async function POST(req: Request) {
+export async function GET(req: Request) {
   // Vérification clé secrète pour le cron
   const { searchParams } = new URL(req.url)
   const secret = searchParams.get('secret')
@@ -63,9 +63,9 @@ Génère ensuite 10 questions QCM en français basées sur ces actualités. Rép
   let data
   try {
     const raw = textContent.text
-const match = raw.match(/\{[\s\S]*\}/)
-if (!match) throw new Error('No JSON found')
-data = JSON.parse(match[0])
+    const match = raw.match(/\{[\s\S]*\}/)
+    if (!match) throw new Error('No JSON found')
+    data = JSON.parse(match[0])
   } catch {
     return NextResponse.json({ error: 'Failed to parse Claude response' }, { status: 500 })
   }
@@ -90,4 +90,9 @@ data = JSON.parse(match[0])
   })
 
   return NextResponse.json({ success: true, quizId: quiz.id, questions: quiz.questions.length })
+}
+
+// Permet aussi l'appel manuel depuis l'admin via POST
+export async function POST(req: Request) {
+  return GET(req)
 }
