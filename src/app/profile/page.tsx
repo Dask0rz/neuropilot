@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import { formatXP } from '@/lib/utils'
 import { getXPProgressPercent, getXPForNextLevel } from '@/lib/game'
+import BadgeModal from '@/components/BadgeModal'
 
 const ALL_BADGES = [
   { slug: 'premier-pas', name: 'Premier Pas', emoji: '🚀', description: 'Terminer ta première leçon' },
@@ -20,6 +21,7 @@ export default function ProfilePage() {
   const { data: session } = useSession()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [selectedBadge, setSelectedBadge] = useState<any>(null)
 
   useEffect(() => {
     fetch('/api/dashboard')
@@ -40,6 +42,9 @@ export default function ProfilePage() {
   const profile = data?.profile
   const streak = data?.streak
   const earnedBadgeSlugs = new Set((data?.badges ?? []).map((b: any) => b.slug))
+  const earnedAt: Record<string, string> = Object.fromEntries(
+    (data?.badges ?? []).map((b: any) => [b.slug, b.earnedAt])
+  )
   const xpProgress = profile ? getXPProgressPercent(profile.xp, profile.level) : 0
   const xpForNext = profile ? getXPForNextLevel(profile.level) : 100
 
@@ -107,19 +112,21 @@ export default function ProfilePage() {
           {ALL_BADGES.map(badge => {
             const earned = earnedBadgeSlugs.has(badge.slug)
             return (
-              <div
+              <button
                 key={badge.slug}
-                className={`glass rounded-xl p-3 text-center transition-all overflow-hidden ${earned ? 'ring-1 ring-lime-neon/30' : 'opacity-40 grayscale'}`}
-                title={badge.description}
+                onClick={() => setSelectedBadge({ ...badge, earned, earnedAt: earnedAt[badge.slug] ?? null })}
+                className={`glass rounded-xl p-3 text-center transition-all overflow-hidden cursor-pointer hover:scale-105 active:scale-95 ${earned ? 'ring-1 ring-lime-neon/30' : 'opacity-40 grayscale'}`}
               >
                 <div className="text-3xl mb-1">{badge.emoji}</div>
                 <div className="text-xs font-medium leading-tight text-white/70 break-words">{badge.name}</div>
                 {!earned && <div className="text-xs text-white/30 mt-0.5">🔒</div>}
-              </div>
+              </button>
             )
           })}
         </div>
       </div>
+
+      <BadgeModal badge={selectedBadge} onClose={() => setSelectedBadge(null)} />
 
       {/* Sign out */}
       <button
