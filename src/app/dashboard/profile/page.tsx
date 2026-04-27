@@ -103,17 +103,17 @@ export default function ProfilePage() {
       {/* Badges */}
       <div className="mb-8">
         <h2 className="font-display text-xl font-black mb-4">Badges</h2>
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
           {ALL_BADGES.map(badge => {
             const earned = earnedBadgeSlugs.has(badge.slug)
             return (
               <div
                 key={badge.slug}
-                className={`glass rounded-xl p-3 text-center transition-all ${earned ? 'ring-1 ring-lime-neon/30' : 'opacity-40 grayscale'}`}
+                className={`glass rounded-xl p-3 text-center transition-all overflow-hidden ${earned ? 'ring-1 ring-lime-neon/30' : 'opacity-40 grayscale'}`}
                 title={badge.description}
               >
                 <div className="text-3xl mb-1">{badge.emoji}</div>
-                <div className="text-xs font-medium leading-tight text-white/70">{badge.name}</div>
+                <div className="text-xs font-medium leading-tight text-white/70 break-words">{badge.name}</div>
                 {!earned && <div className="text-xs text-white/30 mt-0.5">🔒</div>}
               </div>
             )
