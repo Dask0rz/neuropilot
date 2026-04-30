@@ -42,10 +42,6 @@ export default function ChapterDetailPage() {
     <div className="p-6 text-center text-white/50">Chapitre introuvable</div>
   )
 
-  const completedLessonIds = new Set(
-    chapter.lessons?.filter((_: any, i: number) => i < (chapter.completedLessons ?? 0)).map((l: any) => l.id) ?? []
-  )
-
   return (
     <div className="p-6 max-w-2xl mx-auto">
       <Link href="/dashboard/chapters" className="inline-flex items-center gap-2 text-white/50 hover:text-white mb-6 transition-colors text-sm">
@@ -79,9 +75,9 @@ export default function ChapterDetailPage() {
       {/* Lessons list */}
       <div className="space-y-3">
         {chapter.lessons?.map((lesson: any, idx: number) => {
-          const isCompleted = idx < (chapter.completedLessons ?? 0)
-          const isNext = idx === (chapter.completedLessons ?? 0)
-          const isLocked = idx > (chapter.completedLessons ?? 0)
+          const isCompleted = lesson.completed === true
+          const isNext = !isCompleted && idx === (chapter.completedLessons ?? 0)
+          const isLocked = !isCompleted && idx > (chapter.completedLessons ?? 0)
 
           return (
             <Link

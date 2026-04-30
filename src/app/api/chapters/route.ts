@@ -39,6 +39,7 @@ export async function GET() {
       const total = ch._count.lessons
       return {
         ...ch,
+        lessons: ch.lessons.map(l => ({ ...l, completed: completedIds.has(l.id) })),
         completedLessons,
         progress: total > 0 ? Math.round((completedLessons / total) * 100) : 0,
         isLocked: !isChapterUnlocked(ch.order, userXP),
