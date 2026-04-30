@@ -5,13 +5,14 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { calculateXPEarned, calculateNextReview, getLevelFromXP } from '@/lib/game'
+import { applyAutoRecharge, HEART_RECHARGE_MS } from '@/lib/hearts'
 
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
-    const { lessonId, score, correctAnswers, totalExercises, duration, xpBase } = await req.json()
+    const { lessonId, score, correctAnswers, totalExercises, duration, xpBase, heartsLost = 0 } = await req.json()
     const userId = session.user.id
 
     const [profile, streak] = await Promise.all([
@@ -138,6 +139,22 @@ export async function POST(req: NextRequest) {
       if (earned) {
         await prisma.userBadge.create({ data: { userId, badgeId: badge.id } })
         badgesUnlocked.push(badge.slug)
+      }
+    }
+
+    // Persist heart loss
+    if (heartsLost > 0) {
+      const freshProfile = await applyAutoRecharge(userId)
+      if (freshProfile) {
+        const newHearts = Math.max(0, freshProfile.hearts - heartsLost)
+        const needsTimer = newHearts < freshProfile.maxHearts && !freshProfile.nextHeartAt
+        await prisma.profile.update({
+          where: { userId },
+          data: {
+            hearts: newHearts,
+            nextHeartAt: needsTimer ? new Date(Date.now() + HEART_RECHARGE_MS) : freshProfile.nextHeartAt,
+          },
+        })
       }
     }
 

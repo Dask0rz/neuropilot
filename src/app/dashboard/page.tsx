@@ -5,15 +5,40 @@ import Link from 'next/link'
 import { formatXP, isStreakActive } from '@/lib/utils'
 import { getXPProgressPercent, getXPForNextLevel } from '@/lib/game'
 
+function HeartCountdown({ nextHeartAt }: { nextHeartAt: string }) {
+  const [label, setLabel] = useState('')
+  useEffect(() => {
+    const target = new Date(nextHeartAt).getTime()
+    const update = () => {
+      const diff = target - Date.now()
+      if (diff <= 0) { setLabel('bientôt'); return }
+      const h = Math.floor(diff / 3600000)
+      const m = Math.floor((diff % 3600000) / 60000)
+      const s = Math.floor((diff % 60000) / 1000)
+      setLabel(h > 0 ? `${h}h${String(m).padStart(2,'0')}` : `${m}:${String(s).padStart(2,'0')}`)
+    }
+    update()
+    const id = setInterval(update, 1000)
+    return () => clearInterval(id)
+  }, [nextHeartAt])
+  return <div className="text-xs text-white/30 mt-0.5">+❤️ dans {label}</div>
+}
+
 export default function DashboardPage() {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [recharging, setRecharging] = useState(false)
 
-  useEffect(() => {
-    fetch('/api/dashboard')
-      .then(r => r.json())
-      .then(d => { setData(d); setLoading(false) })
-  }, [])
+  const fetchData = () => fetch('/api/dashboard').then(r => r.json()).then(d => { setData(d); setLoading(false) })
+
+  useEffect(() => { fetchData() }, [])
+
+  async function handleRecharge() {
+    setRecharging(true)
+    await fetch('/api/hearts', { method: 'POST' })
+    await fetchData()
+    setRecharging(false)
+  }
 
   if (loading) return <DashboardSkeleton />
 
@@ -51,7 +76,7 @@ export default function DashboardPage() {
         <StatCard emoji="⭐" label="Niveau" value={`${profile?.level ?? 1}`} color="#00D4FF" />
         <StatCard emoji="🔥" label="Série" value={`${streak?.currentStreak ?? 0}j`} color="#FFB347" active={streakActive} />
         <StatCard emoji="⚡" label="XP aujourd'hui" value={`+${todayXP}`} color="#A3FF47" />
-        <StatCard emoji="❤️" label="Vies" value={`${profile?.hearts ?? 5}/${profile?.maxHearts ?? 5}`} color="#FF6B6B" />
+        <HeartsCard hearts={profile?.hearts ?? 5} maxHearts={profile?.maxHearts ?? 5} nextHeartAt={profile?.nextHeartAt} onRecharge={handleRecharge} recharging={recharging} />
       </div>
 
       {/* XP Progress */}
@@ -125,6 +150,27 @@ export default function DashboardPage() {
             Commencer le chapitre 1
           </Link>
         </div>
+      )}
+    </div>
+  )
+}
+
+function HeartsCard({ hearts, maxHearts, nextHeartAt, onRecharge, recharging }: any) {
+  const empty = hearts < maxHearts
+  return (
+    <div className={`glass-card p-4 text-center ${empty ? 'ring-1 ring-red-500/30' : ''}`}>
+      <div className="text-2xl mb-1">❤️</div>
+      <div className="font-display text-2xl font-black text-red-400">{hearts}/{maxHearts}</div>
+      <div className="text-white/40 text-xs mt-0.5">Vies</div>
+      {empty && nextHeartAt && <HeartCountdown nextHeartAt={nextHeartAt} />}
+      {empty && (
+        <button
+          onClick={onRecharge}
+          disabled={recharging}
+          className="mt-2 text-xs px-2 py-1 bg-red-500/20 border border-red-500/30 rounded-lg text-red-300 hover:bg-red-500/30 transition-all disabled:opacity-40 w-full"
+        >
+          {recharging ? '...' : 'Recharger'}
+        </button>
       )}
     </div>
   )

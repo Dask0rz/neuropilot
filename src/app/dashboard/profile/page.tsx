@@ -24,11 +24,37 @@ export default function ProfilePage() {
   const [selectedBadge, setSelectedBadge] = useState<any>(null)
   const [checkingBadges, setCheckingBadges] = useState(false)
   const [badgeCheckResult, setBadgeCheckResult] = useState<string[] | null>(null)
+  const [recharging, setRecharging] = useState(false)
+  const [heartsCountdown, setHeartsCountdown] = useState('')
 
   const fetchDashboard = () =>
     fetch('/api/dashboard').then(r => r.json()).then(d => { setData(d); setLoading(false) })
 
   useEffect(() => { fetchDashboard() }, [])
+
+  useEffect(() => {
+    const nextHeartAt = data?.profile?.nextHeartAt
+    if (!nextHeartAt) return
+    const target = new Date(nextHeartAt).getTime()
+    const update = () => {
+      const diff = target - Date.now()
+      if (diff <= 0) { setHeartsCountdown(''); return }
+      const h = Math.floor(diff / 3600000)
+      const m = Math.floor((diff % 3600000) / 60000)
+      const s = Math.floor((diff % 60000) / 1000)
+      setHeartsCountdown(h > 0 ? `${h}h ${String(m).padStart(2,'0')}min` : `${m}:${String(s).padStart(2,'0')}`)
+    }
+    update()
+    const id = setInterval(update, 1000)
+    return () => clearInterval(id)
+  }, [data?.profile?.nextHeartAt])
+
+  async function handleRecharge() {
+    setRecharging(true)
+    await fetch('/api/hearts', { method: 'POST' })
+    await fetchDashboard()
+    setRecharging(false)
+  }
 
   async function handleCheckBadges() {
     setCheckingBadges(true)
@@ -109,7 +135,7 @@ export default function ProfilePage() {
           { label: 'XP Total', value: formatXP(profile?.xp ?? 0), emoji: '⭐' },
           { label: 'Leçons', value: profile?.totalLessonsCompleted ?? 0, emoji: '📚' },
           { label: 'Meilleure série', value: `${streak?.longestStreak ?? 0}j`, emoji: '🔥' },
-          { label: 'Vies', value: `${profile?.hearts ?? 5}/5`, emoji: '❤️' },
+          { label: 'Vies', value: `${profile?.hearts ?? 5}/${profile?.maxHearts ?? 5}`, emoji: '❤️' },
         ].map(s => (
           <div key={s.label} className="glass-card p-4 text-center">
             <div className="text-2xl mb-1">{s.emoji}</div>
@@ -118,6 +144,32 @@ export default function ProfilePage() {
           </div>
         ))}
       </div>
+
+      {/* Vies */}
+      {profile && profile.hearts < profile.maxHearts && (
+        <div className="glass-card p-5 mb-6 border border-red-500/20">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <div className="font-display font-bold">Vies restantes</div>
+              <div className="flex gap-1 mt-1">
+                {Array.from({ length: profile.maxHearts }).map((_: any, i: number) => (
+                  <span key={i} className={`text-xl ${i < profile.hearts ? '' : 'opacity-20'}`}>❤️</span>
+                ))}
+              </div>
+              {heartsCountdown && (
+                <div className="text-xs text-white/40 mt-2">Prochain cœur dans <span className="font-mono text-cyan-neon">{heartsCountdown}</span></div>
+              )}
+            </div>
+            <button
+              onClick={handleRecharge}
+              disabled={recharging}
+              className="px-4 py-2 bg-red-500/20 border border-red-500/30 rounded-xl text-red-300 hover:bg-red-500/30 transition-all disabled:opacity-40 text-sm font-medium"
+            >
+              {recharging ? '...' : '❤️ Recharger'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Badges */}
       <div className="mb-8">

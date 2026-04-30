@@ -18,7 +18,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
-type LessonPhase = 'loading' | 'course' | 'quiz' | 'result'
+type LessonPhase = 'loading' | 'course' | 'quiz' | 'result' | 'no_hearts'
 
 export default function LearnPage() {
   const { lessonId } = useParams<{ lessonId: string }>()
@@ -26,6 +26,8 @@ export default function LearnPage() {
   const [phase, setPhase] = useState<LessonPhase>('loading')
   const [submitting, setSubmitting] = useState(false)
   const [unlockedBadges, setUnlockedBadges] = useState<string[]>([])
+  const [initialHearts, setInitialHearts] = useState(5)
+  const [nextHeartAt, setNextHeartAt] = useState<string | null>(null)
 
   const {
     currentExerciseIndex, exercises, hearts, xpEarned, completed,
@@ -33,19 +35,29 @@ export default function LearnPage() {
   } = useGameStore()
 
   useEffect(() => {
-    fetch(`/api/lessons/${lessonId}`)
-      .then(r => r.json())
-      .then(data => {
-        setLesson(data)
-  const sorted = [...(data.exercises ?? [])].sort((a, b) => {
-  const complex = ['ordre', 'relier', 'completer']
-  const aComplex = complex.includes(a.type) ? 1 : 0
-  const bComplex = complex.includes(b.type) ? 1 : 0
-  return aComplex - bComplex
-})
-initGame(sorted, 5)
-        setPhase(data.content ? 'course' : 'quiz')
+    Promise.all([
+      fetch(`/api/lessons/${lessonId}`).then(r => r.json()),
+      fetch('/api/hearts').then(r => r.json()),
+    ]).then(([lessonData, heartsData]) => {
+      setLesson(lessonData)
+      const h = heartsData.hearts ?? 5
+      setInitialHearts(h)
+      setNextHeartAt(heartsData.nextHeartAt ?? null)
+
+      if (h === 0) {
+        setPhase('no_hearts')
+        return
+      }
+
+      const sorted = [...(lessonData.exercises ?? [])].sort((a: any, b: any) => {
+        const complex = ['ordre', 'relier', 'completer']
+        const aComplex = complex.includes(a.type) ? 1 : 0
+        const bComplex = complex.includes(b.type) ? 1 : 0
+        return aComplex - bComplex
       })
+      initGame(sorted, h)
+      setPhase(lessonData.content ? 'course' : 'quiz')
+    })
     return () => resetGame()
   }, [lessonId])
 
@@ -56,14 +68,21 @@ initGame(sorted, 5)
     const correct = state.answers.filter(a => a.isCorrect).length
     const score = calculateScore(correct, exercises.length)
     const duration = Math.round((Date.now() - state.startTime) / 1000)
+    const heartsLost = Math.max(0, initialHearts - state.hearts)
     const res = await fetch('/api/progress', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ lessonId, score, correctAnswers: correct, totalExercises: exercises.length, duration, xpBase: lesson?.xpReward ?? 20 }),
+      body: JSON.stringify({ lessonId, score, correctAnswers: correct, totalExercises: exercises.length, duration, xpBase: lesson?.xpReward ?? 20, heartsLost }),
     })
     const data = await res.json()
     if (data.badgesUnlocked?.length > 0) setUnlockedBadges(data.badgesUnlocked)
     setSubmitting(false)
+  }
+
+  if (phase === 'no_hearts') {
+    return <NoHeartsScreen nextHeartAt={nextHeartAt} onRecharge={() => {
+      fetch('/api/hearts', { method: 'POST' }).then(() => window.location.reload())
+    }} />
   }
 
   if (phase === 'loading') return (
@@ -159,6 +178,63 @@ initGame(sorted, 5)
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function NoHeartsScreen({ nextHeartAt, onRecharge }: { nextHeartAt: string | null, onRecharge: () => void }) {
+  const [countdown, setCountdown] = useState('')
+  const [recharging, setRecharging] = useState(false)
+
+  useEffect(() => {
+    if (!nextHeartAt) return
+    const target = new Date(nextHeartAt).getTime()
+    const update = () => {
+      const diff = target - Date.now()
+      if (diff <= 0) { setCountdown('00:00:00'); return }
+      const h = Math.floor(diff / 3600000)
+      const m = Math.floor((diff % 3600000) / 60000)
+      const s = Math.floor((diff % 60000) / 1000)
+      setCountdown(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`)
+    }
+    update()
+    const id = setInterval(update, 1000)
+    return () => clearInterval(id)
+  }, [nextHeartAt])
+
+  return (
+    <div className="min-h-screen bg-navy-900 bg-grid flex flex-col items-center justify-center p-6">
+      <div className="max-w-sm w-full text-center">
+        <div className="text-8xl mb-6">💔</div>
+        <h1 className="font-display text-3xl font-black mb-2">Plus de vies !</h1>
+        <p className="text-white/50 mb-8">Recharge tes cœurs pour continuer à apprendre.</p>
+
+        <div className="glass-card p-6 mb-6 neon-border">
+          <div className="flex justify-center gap-2 mb-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <span key={i} className="text-2xl opacity-20">❤️</span>
+            ))}
+          </div>
+          {nextHeartAt && (
+            <div className="text-center">
+              <div className="text-xs text-white/40 mb-1">Prochain cœur dans</div>
+              <div className="font-mono text-2xl font-bold text-cyan-neon">{countdown}</div>
+            </div>
+          )}
+        </div>
+
+        <button
+          onClick={async () => { setRecharging(true); onRecharge() }}
+          disabled={recharging}
+          className="btn-primary w-full py-4 text-lg mb-4 disabled:opacity-50"
+        >
+          {recharging ? 'Rechargement...' : '❤️ Recharger maintenant (gratuit)'}
+        </button>
+
+        <Link href="/dashboard" className="btn-secondary py-3 text-sm inline-block w-full">
+          Retour à l'accueil
+        </Link>
+      </div>
     </div>
   )
 }

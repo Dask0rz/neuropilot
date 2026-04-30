@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { isChapterUnlocked } from '@/lib/game'
+import { applyAutoRecharge } from '@/lib/hearts'
 
 export async function GET() {
   try {
@@ -65,8 +66,14 @@ export async function GET() {
       isLocked: !isChapterUnlocked(ch.order, userXP),
     }))
 
+    const heartsData = await applyAutoRecharge(userId)
+
     return NextResponse.json({
-      profile,
+      profile: profile ? {
+        ...profile,
+        hearts: heartsData?.hearts ?? profile.hearts,
+        nextHeartAt: heartsData?.nextHeartAt ?? null,
+      } : null,
       streak,
       badges: badges.map(ub => ({ ...ub.badge, earnedAt: ub.earnedAt })),
       chaptersProgress,

@@ -36,6 +36,7 @@ model Profile {
   xp                    Int      @default(0)
   hearts                Int      @default(5)
   maxHearts             Int      @default(5)
+  nextHeartAt           DateTime?
   userLevel             String   @default("debutant") // debutant | intermediaire | avance
   goal                  String   @default("culture") // culture | pro | expert
   totalLessonsCompleted Int      @default(0)
