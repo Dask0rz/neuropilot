@@ -5,6 +5,7 @@ import { useSession, signOut } from 'next-auth/react'
 import { formatXP } from '@/lib/utils'
 import { getXPProgressPercent, getXPForNextLevel } from '@/lib/game'
 import BadgeModal from '@/components/BadgeModal'
+import BadgeUnlockedPopup from '@/components/BadgeUnlockedPopup'
 
 const ALL_BADGES = [
   { slug: 'premier-pas', name: 'Premier Pas', emoji: '🚀', description: 'Terminer ta première leçon' },
@@ -23,8 +24,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true)
   const [selectedBadge, setSelectedBadge] = useState<any>(null)
   const [checkingBadges, setCheckingBadges] = useState(false)
-  const [badgeCheckResult, setBadgeCheckResult] = useState<string[] | null>(null)
-  const [badgeDebug, setBadgeDebug] = useState<any[] | null>(null)
+  const [unlockedBadges, setUnlockedBadges] = useState<string[]>([])
 
   const fetchDashboard = () =>
     fetch('/api/dashboard').then(r => r.json()).then(d => { setData(d); setLoading(false) })
@@ -33,13 +33,14 @@ export default function ProfilePage() {
 
   async function handleCheckBadges() {
     setCheckingBadges(true)
-    setBadgeCheckResult(null)
     try {
       const res = await fetch('/api/badges', { method: 'POST' })
       const json = await res.json()
-      setBadgeCheckResult(json.badgesUnlocked ?? [])
-      setBadgeDebug(json.debug ?? null)
-      if ((json.badgesUnlocked ?? []).length > 0) await fetchDashboard()
+      const earned: string[] = json.badgesUnlocked ?? []
+      if (earned.length > 0) {
+        await fetchDashboard()
+        setUnlockedBadges(earned)
+      }
     } finally {
       setCheckingBadges(false)
     }
@@ -133,21 +134,6 @@ export default function ProfilePage() {
             {checkingBadges ? '...' : 'Vérifier mes badges'}
           </button>
         </div>
-        {badgeCheckResult !== null && (
-          <div className={`mb-3 text-xs px-3 py-2 rounded-lg ${badgeCheckResult.length > 0 ? 'bg-lime-neon/10 text-lime-neon' : 'bg-white/5 text-white/50'}`}>
-            {badgeCheckResult.length > 0
-              ? `Badges débloqués : ${badgeCheckResult.join(', ')}`
-              : 'Aucun nouveau badge pour l\'instant.'}
-          </div>
-        )}
-        {badgeDebug !== null && (
-          <details className="mb-3">
-            <summary className="text-xs text-white/30 cursor-pointer">Détails diagnostic</summary>
-            <pre className="text-[10px] text-white/40 mt-1 overflow-auto max-h-48 bg-white/5 rounded p-2">
-              {JSON.stringify(badgeDebug.filter((b: any) => b.status !== 'already_earned'), null, 2)}
-            </pre>
-          </details>
-        )}
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
           {ALL_BADGES.map(badge => {
             const earned = earnedBadgeSlugs.has(badge.slug)
@@ -167,6 +153,9 @@ export default function ProfilePage() {
       </div>
 
       <BadgeModal badge={selectedBadge} onClose={() => setSelectedBadge(null)} />
+      {unlockedBadges.length > 0 && (
+        <BadgeUnlockedPopup slugs={unlockedBadges} onDone={() => setUnlockedBadges([])} />
+      )}
 
       {/* Sign out */}
       <button
