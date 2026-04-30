@@ -1,4 +1,4 @@
-const CACHE_NAME = 'yukino-v3';
+const CACHE_NAME = 'yukino-v4';
 
 // Assets statiques à mettre en cache immédiatement
 const STATIC_ASSETS = [];
