@@ -35,23 +35,43 @@ export async function POST() {
     )
 
     const badgesUnlocked: string[] = []
+    const debug: Record<string, unknown>[] = []
 
     for (const badge of allBadges) {
-      if (userBadgeIds.includes(badge.id)) continue
+      if (userBadgeIds.includes(badge.id)) {
+        debug.push({ slug: badge.slug, status: 'already_earned' })
+        continue
+      }
       const condition = JSON.parse(badge.condition)
       let earned = false
+      const info: Record<string, unknown> = { slug: badge.slug, condition }
 
-      if (condition.lessonsCompleted && totalLessonsCompleted >= condition.lessonsCompleted) earned = true
-      if (condition.streak && currentStreak >= condition.streak) earned = true
-      if (condition.xp && currentXP >= condition.xp) earned = true
-
+      if (condition.lessonsCompleted) {
+        info.lessonsCompleted = { required: condition.lessonsCompleted, actual: totalLessonsCompleted }
+        if (totalLessonsCompleted >= condition.lessonsCompleted) earned = true
+      }
+      if (condition.streak) {
+        info.streak = { required: condition.streak, actual: currentStreak }
+        if (currentStreak >= condition.streak) earned = true
+      }
+      if (condition.xp) {
+        info.xp = { required: condition.xp, actual: currentXP }
+        if (currentXP >= condition.xp) earned = true
+      }
       if (condition.chapter) {
         const chapter = chapters.find(c => c.slug === condition.chapter)
         if (chapter) {
-          const allCompleted = chapter.lessons.every(l => completedLessonIds.has(l.id))
-          if (allCompleted && chapter.lessons.length > 0) earned = true
+          const lessonIds = chapter.lessons.map(l => l.id)
+          const completedCount = lessonIds.filter(id => completedLessonIds.has(id)).length
+          info.chapter = { slug: condition.chapter, total: lessonIds.length, completed: completedCount }
+          if (completedCount >= lessonIds.length && lessonIds.length > 0) earned = true
+        } else {
+          info.chapter = { slug: condition.chapter, error: 'chapter not found in db' }
         }
       }
+
+      info.earned = earned
+      debug.push(info)
 
       if (earned) {
         await prisma.userBadge.create({ data: { userId, badgeId: badge.id } })
@@ -59,7 +79,7 @@ export async function POST() {
       }
     }
 
-    return NextResponse.json({ badgesUnlocked })
+    return NextResponse.json({ badgesUnlocked, debug })
   } catch (e) {
     console.error(e)
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })

@@ -24,6 +24,7 @@ export default function ProfilePage() {
   const [selectedBadge, setSelectedBadge] = useState<any>(null)
   const [checkingBadges, setCheckingBadges] = useState(false)
   const [badgeCheckResult, setBadgeCheckResult] = useState<string[] | null>(null)
+  const [badgeDebug, setBadgeDebug] = useState<any[] | null>(null)
 
   const fetchDashboard = () =>
     fetch('/api/dashboard').then(r => r.json()).then(d => { setData(d); setLoading(false) })
@@ -35,9 +36,10 @@ export default function ProfilePage() {
     setBadgeCheckResult(null)
     try {
       const res = await fetch('/api/badges', { method: 'POST' })
-      const { badgesUnlocked } = await res.json()
-      setBadgeCheckResult(badgesUnlocked)
-      if (badgesUnlocked.length > 0) await fetchDashboard()
+      const json = await res.json()
+      setBadgeCheckResult(json.badgesUnlocked ?? [])
+      setBadgeDebug(json.debug ?? null)
+      if ((json.badgesUnlocked ?? []).length > 0) await fetchDashboard()
     } finally {
       setCheckingBadges(false)
     }
@@ -137,6 +139,14 @@ export default function ProfilePage() {
               ? `Badges débloqués : ${badgeCheckResult.join(', ')}`
               : 'Aucun nouveau badge pour l\'instant.'}
           </div>
+        )}
+        {badgeDebug !== null && (
+          <details className="mb-3">
+            <summary className="text-xs text-white/30 cursor-pointer">Détails diagnostic</summary>
+            <pre className="text-[10px] text-white/40 mt-1 overflow-auto max-h-48 bg-white/5 rounded p-2">
+              {JSON.stringify(badgeDebug.filter((b: any) => b.status !== 'already_earned'), null, 2)}
+            </pre>
+          </details>
         )}
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
           {ALL_BADGES.map(badge => {
