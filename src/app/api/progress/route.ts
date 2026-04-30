@@ -39,8 +39,8 @@ export async function POST(req: NextRequest) {
         attempts: { increment: 1 },
         bestScore: Math.max(existingProgress?.bestScore ?? 0, score),
         xpEarned: { increment: xpEarned },
-        completed: score >= 50,
-        completedAt: score >= 50 ? new Date() : existingProgress?.completedAt,
+        completed: existingProgress?.completed || score >= 50,
+        completedAt: score >= 50 && !existingProgress?.completedAt ? new Date() : existingProgress?.completedAt,
       },
       create: {
         userId, lessonId, score,
