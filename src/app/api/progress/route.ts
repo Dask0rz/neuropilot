@@ -111,6 +111,12 @@ export async function POST(req: NextRequest) {
     const allBadges = await prisma.badge.findMany()
     const userBadgeIds = (await prisma.userBadge.findMany({ where: { userId }, select: { badgeId: true } })).map(b => b.badgeId)
 
+    // Fetch current lesson's chapter for chapter-based badge checks
+    const currentLesson = await prisma.lesson.findUnique({
+      where: { id: lessonId },
+      include: { chapter: { include: { lessons: { select: { id: true } } } } },
+    })
+
     for (const badge of allBadges) {
       if (userBadgeIds.includes(badge.id)) continue
       const condition = JSON.parse(badge.condition)
@@ -120,6 +126,14 @@ export async function POST(req: NextRequest) {
       if (condition.streak && newStreak >= condition.streak) earned = true
       if (condition.perfectScore && score === 100) earned = true
       if (condition.xp && newXP >= condition.xp) earned = true
+
+      if (condition.chapter && currentLesson?.chapter && currentLesson.chapter.slug === condition.chapter) {
+        const chapterLessonIds = currentLesson.chapter.lessons.map(l => l.id)
+        const completedInChapter = await prisma.progress.count({
+          where: { userId, lessonId: { in: chapterLessonIds }, completed: true },
+        })
+        if (completedInChapter >= chapterLessonIds.length) earned = true
+      }
 
       if (earned) {
         await prisma.userBadge.create({ data: { userId, badgeId: badge.id } })
