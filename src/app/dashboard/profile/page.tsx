@@ -22,12 +22,26 @@ export default function ProfilePage() {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [selectedBadge, setSelectedBadge] = useState<any>(null)
+  const [checkingBadges, setCheckingBadges] = useState(false)
+  const [badgeCheckResult, setBadgeCheckResult] = useState<string[] | null>(null)
 
-  useEffect(() => {
-    fetch('/api/dashboard')
-      .then(r => r.json())
-      .then(d => { setData(d); setLoading(false) })
-  }, [])
+  const fetchDashboard = () =>
+    fetch('/api/dashboard').then(r => r.json()).then(d => { setData(d); setLoading(false) })
+
+  useEffect(() => { fetchDashboard() }, [])
+
+  async function handleCheckBadges() {
+    setCheckingBadges(true)
+    setBadgeCheckResult(null)
+    try {
+      const res = await fetch('/api/badges', { method: 'POST' })
+      const { badgesUnlocked } = await res.json()
+      setBadgeCheckResult(badgesUnlocked)
+      if (badgesUnlocked.length > 0) await fetchDashboard()
+    } finally {
+      setCheckingBadges(false)
+    }
+  }
 
   if (loading) return (
     <div className="p-6 max-w-2xl mx-auto">
@@ -107,7 +121,23 @@ export default function ProfilePage() {
 
       {/* Badges */}
       <div className="mb-8">
-        <h2 className="font-display text-xl font-black mb-4">Badges</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-display text-xl font-black">Badges</h2>
+          <button
+            onClick={handleCheckBadges}
+            disabled={checkingBadges}
+            className="text-xs px-3 py-1.5 glass rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-all disabled:opacity-40"
+          >
+            {checkingBadges ? '...' : 'Vérifier mes badges'}
+          </button>
+        </div>
+        {badgeCheckResult !== null && (
+          <div className={`mb-3 text-xs px-3 py-2 rounded-lg ${badgeCheckResult.length > 0 ? 'bg-lime-neon/10 text-lime-neon' : 'bg-white/5 text-white/50'}`}>
+            {badgeCheckResult.length > 0
+              ? `Badges débloqués : ${badgeCheckResult.join(', ')}`
+              : 'Aucun nouveau badge pour l\'instant.'}
+          </div>
+        )}
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
           {ALL_BADGES.map(badge => {
             const earned = earnedBadgeSlugs.has(badge.slug)
