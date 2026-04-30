@@ -7,6 +7,7 @@ import { Exercise, AnswerOption } from '@/types'
 import { calculateScore, getScoreLabel } from '@/lib/game'
 import { playCorrect, playWrong, playLevelUpSound } from '@/lib/sound'
 import Link from 'next/link'
+import BadgeUnlockedPopup from '@/components/BadgeUnlockedPopup'
 import {
   DndContext, closestCenter, PointerSensor, TouchSensor,
   useSensor, useSensors, DragEndEvent, DragStartEvent, DragOverlay,
@@ -24,6 +25,7 @@ export default function LearnPage() {
   const [lesson, setLesson] = useState<any>(null)
   const [phase, setPhase] = useState<LessonPhase>('loading')
   const [submitting, setSubmitting] = useState(false)
+  const [unlockedBadges, setUnlockedBadges] = useState<string[]>([])
 
   const {
     currentExerciseIndex, exercises, hearts, xpEarned, completed,
@@ -54,11 +56,13 @@ initGame(sorted, 5)
     const correct = state.answers.filter(a => a.isCorrect).length
     const score = calculateScore(correct, exercises.length)
     const duration = Math.round((Date.now() - state.startTime) / 1000)
-    await fetch('/api/progress', {
+    const res = await fetch('/api/progress', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ lessonId, score, correctAnswers: correct, totalExercises: exercises.length, duration, xpBase: lesson?.xpReward ?? 20 }),
     })
+    const data = await res.json()
+    if (data.badgesUnlocked?.length > 0) setUnlockedBadges(data.badgesUnlocked)
     setSubmitting(false)
   }
 
@@ -98,7 +102,14 @@ initGame(sorted, 5)
   }
 
   if (phase === 'result') {
-    return <LessonResultScreen lesson={lesson} exercises={exercises} hearts={hearts} xpEarned={xpEarned} />
+    return (
+      <>
+        <LessonResultScreen lesson={lesson} exercises={exercises} hearts={hearts} xpEarned={xpEarned} />
+        {unlockedBadges.length > 0 && (
+          <BadgeUnlockedPopup slugs={unlockedBadges} onDone={() => setUnlockedBadges([])} />
+        )}
+      </>
+    )
   }
 
   const currentExercise = exercises[currentExerciseIndex]

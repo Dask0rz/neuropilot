@@ -164,6 +164,34 @@
 }
 
 /* Custom animations */
+@keyframes badge-pop-in {
+  0%   { transform: scale(0.4) translateY(20px); opacity: 0; }
+  70%  { transform: scale(1.08) translateY(-4px); opacity: 1; }
+  100% { transform: scale(1) translateY(0);       opacity: 1; }
+}
+
+@keyframes badge-glow-pulse {
+  0%, 100% { filter: drop-shadow(0 0 12px rgba(163,255,71,0.5)); }
+  50%       { filter: drop-shadow(0 0 28px rgba(163,255,71,0.9)); }
+}
+
+@keyframes badge-ring {
+  0%   { transform: scale(0.6); opacity: 0.8; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+.badge-popup-card {
+  animation: badge-pop-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.badge-popup-emoji {
+  animation: badge-glow-pulse 1.8s ease-in-out infinite;
+}
+
+.badge-popup-ring {
+  animation: badge-ring 1.2s ease-out infinite;
+}
+
 @keyframes ripple {
   0% { transform: scale(0); opacity: 1; }
   100% { transform: scale(4); opacity: 0; }

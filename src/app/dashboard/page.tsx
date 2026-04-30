@@ -102,7 +102,7 @@ export default function DashboardPage() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-display font-bold text-xl">Badges gagnés</h2>
-            <Link href="/profile" className="text-cyan-neon text-sm hover:underline">Voir tout →</Link>
+            <Link href="/dashboard/profile" className="text-cyan-neon text-sm hover:underline">Voir tout →</Link>
           </div>
           <div className="flex gap-3 flex-wrap">
             {badges.slice(0, 5).map((b: any) => (
