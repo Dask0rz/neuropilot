@@ -1,7 +1,7 @@
 // src/app/learn/[lessonId]/page.tsx
 'use client'
 import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { useGameStore } from '@/store/gameStore'
 import { Exercise, AnswerOption } from '@/types'
 import { calculateScore, getScoreLabel } from '@/lib/game'
@@ -22,12 +22,15 @@ type LessonPhase = 'loading' | 'course' | 'quiz' | 'result' | 'no_hearts'
 
 export default function LearnPage() {
   const { lessonId } = useParams<{ lessonId: string }>()
+  const router = useRouter()
   const [lesson, setLesson] = useState<any>(null)
   const [phase, setPhase] = useState<LessonPhase>('loading')
   const [submitting, setSubmitting] = useState(false)
   const [unlockedBadges, setUnlockedBadges] = useState<string[]>([])
   const [initialHearts, setInitialHearts] = useState(5)
   const [nextHeartAt, setNextHeartAt] = useState<string | null>(null)
+  const [showHeartModal, setShowHeartModal] = useState(false)
+  const [recharging, setRecharging] = useState(false)
 
   const {
     currentExerciseIndex, exercises, hearts, xpEarned, completed,
@@ -60,6 +63,20 @@ export default function LearnPage() {
     })
     return () => resetGame()
   }, [lessonId])
+
+  async function handleQuit() {
+    const state = useGameStore.getState()
+    const heartsLost = Math.max(0, initialHearts - state.hearts)
+    if (heartsLost > 0) {
+      await fetch('/api/hearts', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ heartsLost }),
+      })
+    }
+    resetGame()
+    router.push(`/dashboard/chapters/${lesson?.chapter?.id}`)
+  }
 
   async function handleComplete() {
     if (submitting) return
@@ -95,7 +112,7 @@ export default function LearnPage() {
     return (
       <div className="min-h-screen bg-navy-900 bg-grid">
         <div className="sticky top-0 z-10 glass border-b border-white/5 px-6 py-4 flex items-center gap-4">
-          <Link href={`/dashboard/chapters/${lesson?.chapter?.id}`} onClick={resetGame} className="text-white/40 hover:text-white transition-colors">X</Link>
+          <button onClick={handleQuit} className="text-white/40 hover:text-white transition-colors">X</button>
           <div className="flex-1">
             <div className="text-xs text-white/30 font-mono uppercase tracking-widest">{lesson?.chapter?.title} - Lecon {lesson?.order}</div>
             <div className="font-display font-bold truncate">{lesson?.title}</div>
@@ -115,9 +132,14 @@ export default function LearnPage() {
     )
   }
 
-  if (completed && phase !== 'result') {
-    setPhase('result')
-    handleComplete()
+  if (completed && phase !== 'result' && !showHeartModal) {
+    if (hearts === 0) {
+      setShowHeartModal(true)
+      handleComplete()
+    } else {
+      setPhase('result')
+      handleComplete()
+    }
   }
 
   if (phase === 'result') {
@@ -138,7 +160,7 @@ export default function LearnPage() {
   return (
     <div className="min-h-screen bg-navy-900 bg-grid flex flex-col">
       <div className="flex items-center gap-4 px-6 py-4 glass border-b border-white/5 pt-[max(1rem,env(safe-area-inset-top))]">
-        <Link href={`/dashboard/chapters/${lesson?.chapter?.id}`} onClick={resetGame} className="text-white/40 hover:text-white transition-colors">X</Link>
+        <button onClick={handleQuit} className="text-white/40 hover:text-white transition-colors">X</button>
         <div className="flex-1">
           <div className="progress-bar">
             <div className="progress-fill transition-all duration-500" style={{ width: `${progress}%` }} />
@@ -175,6 +197,36 @@ export default function LearnPage() {
             <button onClick={nextExercise} className={`w-full py-3 font-display font-bold rounded-xl transition-all active:scale-95 ${lastAnswerCorrect ? 'bg-lime-neon text-navy-900 hover:bg-white' : 'bg-red-500/30 text-white border border-red-500/50 hover:bg-red-500/40'}`}>
               Continuer
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal : plus de vies */}
+      {showHeartModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/70 backdrop-blur-sm">
+          <div className="glass-card neon-border max-w-sm w-full p-8 text-center badge-popup-card">
+            <div className="text-7xl mb-4">💔</div>
+            <h2 className="font-display text-2xl font-black mb-2">Plus de vies !</h2>
+            <p className="text-white/50 text-sm mb-8">Tu as épuisé tous tes cœurs. Recharge pour continuer à apprendre.</p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={async () => {
+                  setRecharging(true)
+                  await fetch('/api/hearts', { method: 'POST' })
+                  window.location.reload()
+                }}
+                disabled={recharging}
+                className="btn-primary py-4 disabled:opacity-50"
+              >
+                {recharging ? 'Rechargement...' : '❤️ Recharger maintenant (gratuit)'}
+              </button>
+              <button
+                onClick={() => { resetGame(); router.push('/dashboard') }}
+                className="btn-secondary py-3 text-sm"
+              >
+                Retour au dashboard
+              </button>
+            </div>
           </div>
         </div>
       )}
