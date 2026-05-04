@@ -24,7 +24,8 @@ model User {
   reviewQueue  ReviewQueue[]
   badges       UserBadge[]
   streak       DailyStreak?
-  pushSubscriptions PushSubscription[]
+  pushSubscriptions   PushSubscription[]
+  passwordResetTokens PasswordResetToken[]
 }
 
 model Profile {
@@ -210,5 +211,14 @@ model PushSubscription {
   endpoint  String   @unique
   p256dh    String
   auth      String
+  createdAt DateTime @default(now())
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
   createdAt DateTime @default(now())
 }
